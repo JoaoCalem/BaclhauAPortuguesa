@@ -1,23 +1,41 @@
 from api import get_status, control, take_picture, set_simulation, restart_simulation
+from simulation import Simulator
 import sys
 import time
 
 SIMULATION = False
 SIMULATION_SPEED = 20
 RESTART_SIMULATION = True
+simulator = Simulator(SIMULATION_SPEED)
+simulator.picture_taken = False
 
 def main():
     time.sleep(1/SIMULATION_SPEED)
     status = get_status()
     print(status["state"])
+    print('Battery:', status["battery"])
     print("x:",status["width_x"],"y:",status["height_y"])
-    if status["state"] == "safe":
+    if status["battery"] < 1:
         control(status["vx"],status["vy"],status["angle"], "charge")
+    
+    #The following code takes a single picture as soon as possible
+    # and communicates it on the next pass  
+      
     if status["state"] == "deployment":
         control(status["vx"],status["vy"],status["angle"], "acquisition")
     if status["state"] == "acquisition":
-        take_picture(status["width_x"],status["height_y"])
-        control(status["vx"],status["vy"],status["angle"], "charge")
+        if take_picture(status["width_x"],status["height_y"]):
+            control(status["vx"],status["vy"],status["angle"], "charge")
+            simulator.picture_taken = True
+    if simulator.picture_taken and status["battery"] > 99:
+        control(status["vx"],status["vy"],status["angle"], "communication")
+        first_slot = simulator.get_slots()['slots'][0]
+        if not first_slot['enabled']:
+            simulator.book_slot(first_slot['id'],True)
+            print(simulator.get_slots()['slots'][0])
+    if status["state"] == "communication":
+        if simulator.transfer_images():
+            sys.exit()
         
 
 # Example status:
@@ -50,9 +68,9 @@ if __name__ == '__main__':
         if RESTART_SIMULATION:
             restart_simulation()
         set_simulation(SIMULATION,SIMULATION_SPEED)
-        print("Agent started.")
+        print("--Agent started--")
         while True:
             main()
     except KeyboardInterrupt:
-        print('\nGoodbye!')
+        print('\n--Agent quit--')
         sys.exit(0)

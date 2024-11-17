@@ -20,14 +20,15 @@ def control(vx, vy, angle, state):
     if response.status_code != 200:       
         print_error(response, "Control")
 
-def take_picture(x,y, format='tiff'):
+def take_picture(x,y, format='tiff') -> bool:
     response = requests.get(f'{URI}/image')
     if response.status_code == 200:
-        with open(f"images/{x}_{y}.{format}", "wb") as file:
+        with open(f"MELVIN/{x}_{y}.{format}", "wb") as file:
             file.write(response.content)
         print(f"Image saved as {x}_{y}.{format}")
-    else:
-        print_error(response, "Take picture")
+        return True
+    print_error(response, "Take picture")
+    return False
 
 def set_simulation(simulation, simulation_speed):
     response = requests.put(f'{URI}/simulation',params = {
