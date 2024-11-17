@@ -4,6 +4,9 @@ import json
 
 st.write("Bacalhau A Portuguesa")
 url = 'http://10.100.50.1:33000/'
+
+if st.button("Restart Simulation"):
+    requests.get(f'{url}reset')
     
 with st.expander("Status"):
     if st.button('Update Status'):
@@ -43,7 +46,7 @@ with st.expander('Control'):
     vy = st.text_input('Vy', status["vy"])
     st.write(f'Current vy: {status["vy"]}')
     
-    if st.button('Submit Control Request'):
+    if st.button('Submit Control Request'):        
         st.write(requests.put(f'{url}control',data = json.dumps({
             "vel_x": vx,
             "vel_y": vy,
@@ -51,3 +54,17 @@ with st.expander('Control'):
             "state": state
         })).reason)
 
+with st.expander('Simulation Settings'):
+        
+    simulation = st.checkbox('Network Simulation')
+    
+    st.divider()
+
+    simulation_speed = st.slider('Simulation speed', 1, 20)
+    st.write(f'Current speed: {status["simulation_speed"]}')
+    
+    if st.button('Submit Changes'):
+        st.write(requests.put(f'{url}simulation',params = {
+            "is_network_simulation": simulation,
+            "user_speed_multiplier": simulation_speed,
+        }).json())
