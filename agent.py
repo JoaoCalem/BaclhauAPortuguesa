@@ -32,6 +32,7 @@ def main():
         first_slot = simulator.get_slots()['slots'][0]
         if not first_slot['enabled']:
             simulator.book_slot(first_slot['id'],True)
+            simulator.book_slot(first_slot['id']+1,True)
             print(simulator.get_slots()['slots'][0])
     if status["state"] == "communication":
         if simulator.transfer_images():
