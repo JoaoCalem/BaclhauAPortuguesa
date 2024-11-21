@@ -94,20 +94,23 @@ class FeatureHasherWithIncrementalTiles:
             self.tile_c_values[tiling_index][tile_index] = 0
         self.tile_c_values[tiling_index][tile_index] = update
 
-    def hash_state(self, sample):
+    def hash_state(self, sample, current_mode):
         """
         Compute feature hash for a given sample using stored c-values.
 
         sample: Input state (x, y, m, e).
         """
         tile_indices = tile_encode(sample, self.tilings)
+        
         # print(tile_indices)
 
         # Collect c-values from all intersecting tiles
         combined_c_values = []
         for tiling_index, tile_index in enumerate(tile_indices):
+            self.update_c_value(tiling_index, tile_index, current_mode)
             c_value = self.tile_c_values[tiling_index].get(tile_index, 0)
             combined_c_values.append((tile_index, c_value))
+            # print(combined_c_values)
 
         # Combine all tile indices and c-values into a single key
         key = str(combined_c_values) + str(self.seed)
@@ -119,26 +122,26 @@ class FeatureHasherWithIncrementalTiles:
 
 # Define tiling parameters
 low = [0, 0,0,0]  # Lower bounds for (x, y)
-high = [21600, 10800,8,1]  # Upper bounds for (x, y)
-tiling_specs = [(tuple(648 for _ in range(4)), (-0.08, -0.06, -0.04, -0.02)),
-                (tuple(648 for _ in range(4)), (0.02, 0.0, -0.02, -0.04)),
-                (tuple(648 for _ in range(4)), (-0.06, -0.04, 0.0, -0.06))]
+high = [21600, 10800,4,1]  # Upper bounds for (x, y)
+tiling_specs = [(tuple(648 for _ in range(4)), (-300, -300, -0.4, -0.2)),
+                (tuple(648 for _ in range(4)), (150, 0.0, -0.2, -0.4)),
+                (tuple(648 for _ in range(4)), (0, 150, 0.0, -0.6))]
 tilings = create_tilings(low, high, tiling_specs)
 
-# Initialize the feature hasher
+# # Initialize the feature hasher
 hash_space_size = 100000  # Size of hash space
 hasher = FeatureHasherWithIncrementalTiles(tilings, hash_space_size)
 
-# Update c-values incrementally
-hasher.update_c_value(0, (2, 3), 1.)  # Increment tile (2, 3) in tiling 0 by 1.5
-hasher.update_c_value(1, (2, 3), 0.5)  # Increment tile (2, 3) in tiling 1 by 2.0
+# # Update c-values incrementally
+# hasher.update_c_value(0, (2, 3), [1,2])  # Increment tile (2, 3) in tiling 0 by 1.5
+# hasher.update_c_value(1, (2, 3), [0.5,5] )  # Increment tile (2, 3) in tiling 1 by 2.0
 
-# Test with a sample state (x, y, z1, z2)
-sample_state = (2, 3, 1.0, 1.0)
-hashed_values = hasher.hash_state(sample_state)
+# # Test with a sample state (x, y, z1, z2)
+# sample_state = (2, 3, 1.0, 1.0)
+# hashed_values = hasher.hash_state(sample_state, 5)
 
-print("Hashed Values:", hashed_values)
-memory_usage_mb = calculate_memory_usage(tilings, hasher.tile_c_values, hash_space_size)
-print(f"Estimated RAM usage: {memory_usage_mb:.3f} MB")
+# print("Hashed Values:", hashed_values)
+# memory_usage_mb = calculate_memory_usage(tilings, hasher.tile_c_values, hash_space_size)
+# print(f"Estimated RAM usage: {memory_usage_mb:.3f} MB")
 
 
