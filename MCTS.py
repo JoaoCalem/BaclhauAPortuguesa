@@ -101,6 +101,13 @@ def forecast_function(current_state, action):
         y += vy * steps
         x = int(np.round(x))
         y = int(np.round(y))
+        if mode<3 and (action<3 or action==5):
+            e -= 0.2*steps
+        elif mode==4 and action>3:
+            e += 0.2*steps
+        if mode<3 and action ==5:
+            pass #Update memory
+            
     x, y, vx, vy, m, e, mode, coverage = current_state
     # Example logic to compute the next state
     no_transition = any([
@@ -109,13 +116,13 @@ def forecast_function(current_state, action):
         mode<3 and action<3
         ])
     transition = False if no_transition else True
+    if mode == 6 and action<5:
+        step(20*60)
     if transition:
         step(3*60)
     else:
         step()
-    m = max(0, m - action * 2)  # Reduce 'm' based on action
-    e = max(0, e - action * 3)  # Reduce 'e' based on action
-    mode = random.choice([1, 2, 3]) if action in [1, 2, 3] else random.choice([4, 5])
+    mode = action if action<5 else mode
     coverage = 600 if action in [1, 2] else 1000
     return (x, y,vx,vy, m, e, mode, coverage)
 
