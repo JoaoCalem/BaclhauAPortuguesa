@@ -91,6 +91,8 @@ class MCTS:
             node.value += reward
             node = node.parent
 
+def get_idx_coverage(x,y) -> int:
+    pass
 
 def step(current_state,action,steps=1):
     """update for n steps (seconds)"""
@@ -104,7 +106,7 @@ def step(current_state,action,steps=1):
     elif mode==4 and action>3:
         e += 0.2*steps
     if mode<3 and action ==5:
-        pass #Update memory
+        coverage[get_idx_coverage(x,y)] = 1
     mode = action if action<5 else mode
     return current_state
     
@@ -138,7 +140,9 @@ def reward_function(state, action):
 possible_actions = [1, 2, 3, 4, 5, 6]
 
 # Run MCTS
-start_state = (500, 250,4.35,5.49, 80, 90, 1, 600)
+coverage_size = 10 #ToDO
+coverage = np.zeros([coverage_size])
+start_state = (500, 250,4.35,5.49, 80, 90, 1, coverage)
 
 # Run MCTS starting from the new state
 mcts = MCTS(forecast_function, reward_function, possible_actions, max_iterations=500)
