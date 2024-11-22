@@ -92,8 +92,9 @@ class MCTS:
             node = node.parent
 
 
-def step(x,y,vx,vy,m,e,mode,action,steps=1):
+def step(current_state,action,steps=1):
     """update for n steps (seconds)"""
+    x, y, vx, vy, m, e, mode, coverage = current_state
     x += vx * steps
     y += vy * steps
     x = int(np.round(x))
@@ -104,6 +105,8 @@ def step(x,y,vx,vy,m,e,mode,action,steps=1):
         e += 0.2*steps
     if mode<3 and action ==5:
         pass #Update memory
+    mode = action if action<5 else mode
+    return current_state
     
 # Example external forecast function
 def forecast_function(current_state, action):
@@ -117,14 +120,12 @@ def forecast_function(current_state, action):
         ])
     transition = False if no_transition else True
     if mode == 6 and action<5:
-        step(x,y,vx,vy,m,e,mode,action,20*60)
+        new_state = step(current_state,action,20*60)
     if transition:
-        step(x,y,vx,vy,m,e,mode,action,3*60)
+        new_state = step(current_state,action,3*60)
     else:
-        step(x,y,vx,vy,m,e,mode,action)
-    mode = action if action<5 else mode
-    coverage = 600 if action in [1, 2] else 1000
-    return (x, y,vx,vy, m, e, mode, coverage)
+        new_state = step(current_state,action)
+    return new_state
 
 # Example reward function
 def reward_function(state, action):
