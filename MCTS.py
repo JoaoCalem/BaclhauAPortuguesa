@@ -92,7 +92,11 @@ class MCTS:
             node = node.parent
 
 def get_idx_coverage(x,y) -> int:
-    pass
+    """ 
+    Return idx of covergae list based on x and y.
+    Return None if x and y not around center of square
+    """
+    pass #ToDo: write this function
 
 def step(current_state,action,steps=1):
     """update for n steps (seconds)"""
@@ -106,7 +110,11 @@ def step(current_state,action,steps=1):
     elif mode==4 and action>3:
         e += 0.2*steps
     if mode<3 and action ==5:
-        coverage[get_idx_coverage(x,y)] = 1
+        idx = get_idx_coverage(x,y)
+        if idx:
+            coverage[idx] = 1
+        # ToDo: update memory
+        
     mode = action if action<5 else mode
     return current_state
     
@@ -140,7 +148,7 @@ def reward_function(state, action):
 possible_actions = [1, 2, 3, 4, 5, 6]
 
 # Run MCTS
-coverage_size = 10 #ToDO
+coverage_size = 10 #ToDo: change this value
 coverage = np.zeros([coverage_size])
 start_state = (500, 250,4.35,5.49, 80, 90, 1, coverage)
 
