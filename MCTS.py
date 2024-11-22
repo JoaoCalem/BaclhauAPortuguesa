@@ -92,22 +92,22 @@ class MCTS:
             node = node.parent
 
 
+def step(x,y,vx,vy,m,e,mode,action,steps=1):
+    """update for n steps (seconds)"""
+    x += vx * steps
+    y += vy * steps
+    x = int(np.round(x))
+    y = int(np.round(y))
+    if mode<3 and (action<3 or action==5):
+        e -= 0.2*steps
+    elif mode==4 and action>3:
+        e += 0.2*steps
+    if mode<3 and action ==5:
+        pass #Update memory
+    
 # Example external forecast function
 def forecast_function(current_state, action):
     """Predict the next state based on the current state and action."""
-    def step(steps=1):
-        """update for n steps (seconds)"""
-        x += vx * steps
-        y += vy * steps
-        x = int(np.round(x))
-        y = int(np.round(y))
-        if mode<3 and (action<3 or action==5):
-            e -= 0.2*steps
-        elif mode==4 and action>3:
-            e += 0.2*steps
-        if mode<3 and action ==5:
-            pass #Update memory
-            
     x, y, vx, vy, m, e, mode, coverage = current_state
     # Example logic to compute the next state
     no_transition = any([
@@ -117,11 +117,11 @@ def forecast_function(current_state, action):
         ])
     transition = False if no_transition else True
     if mode == 6 and action<5:
-        step(20*60)
+        step(x,y,vx,vy,m,e,mode,action,20*60)
     if transition:
-        step(3*60)
+        step(x,y,vx,vy,m,e,mode,action,3*60)
     else:
-        step()
+        step(x,y,vx,vy,m,e,mode,action)
     mode = action if action<5 else mode
     coverage = 600 if action in [1, 2] else 1000
     return (x, y,vx,vy, m, e, mode, coverage)
