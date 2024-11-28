@@ -448,4 +448,4 @@ trajectory = bundle_segments(intersections[1:])
 # Step 3: Create a grid centered at the midpoint with squares twice the mapped size
 square_size = 2 * closest_value
 centers,efective_length,direction_vector = place_squares_trajectory(trajectory,600, declive)
-plot_squares(trajectory,centers,600,domain_width, domain_height,efective_length,direction_vector)
+# plot_squares(trajectory,centers,600,domain_width, domain_height,efective_length,direction_vector)

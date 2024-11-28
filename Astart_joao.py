@@ -28,7 +28,7 @@ class AStar:
 
         visited = set()
 
-        for i in range(10000):
+        while open_set:
             try:
                 f, g, current_state, path = heapq.heappop(open_set)
 
@@ -47,17 +47,18 @@ class AStar:
                         continue
 
                     g = self.cost_function(next_state, action, extra_cost)
-                    h = self.heuristic_function(next_state)
+                    alpha = 3
+                    h = alpha*self.heuristic_function(next_state)
                     heapq.heappush(open_set, (g + h, g, next_state, path + [action]))
-                print([(i[-1],i[0],i[1]) for i in open_set[:1]])
+                print([((i[0]-i[1])/(alpha*2), round(i[-2][2],2)*100, i[-2][0]) for i in open_set[:1]])
                 # breakpoint()
             except KeyboardInterrupt:
-                print([(i[-1],i[0],i[1]) for i in open_set[:1]])
+                # print([(i[-1],(i[0]-i[1])/2) for i in open_set[:1]])
                 inp = input('Continue: y or n\n')
                 if inp=='n':
                     sys.exit()
 
-        print([(i[-1],i[0],i[1]) for i in open_set[:1]])
+        return open_set[0][-1], open_set[0][1]
         return [], float("inf")  # If the goal was not reached
     def cost_function(self, state, action, extra_cost):
         """Calculate the cost for a given state and action."""
@@ -68,7 +69,7 @@ class AStar:
         """Estimate the remaining cost to the goal."""
         key, coverage, e, mode,steps_passed = state
         
-        heur = len([i for i in coverage if i==0]) *2
+        heur = len([i for i in coverage if i==0]) * 2
         return heur 
 
     def find_next_center(self, current_state, action,efective_length,direction_vector,v_x = 4.35,v_y = 5.49):
@@ -89,14 +90,15 @@ class AStar:
             mode = 0 if action == 1 else 4
             if action==4:
                 e += (time_square*n_squares-20*3) *0.2/100 + 20*60*0.05/100
-        x = key[0] + v_x * time_square*n_squares if key[0] + v_x * time_square*n_squares <= 21600 else key[0] + v_x * time_square*n_squares - 21600
-        y = key[1] + v_y * time_square*n_squares if key[1] + v_y * time_square*n_squares <= 10800 else key[1] + v_y * time_square*n_squares - 10800
-        key, _ = self.get_idx_coverage(x, y)
         
+        new_index = [*self.coverage].index(key)+n_squares
+        if new_index >= len(self.coverage):
+            new_index += -len(self.coverage)
+        key = [*self.coverage][new_index]
         
-        if e<0.01:
+        if e<0.70:
             mode=5
-            e=0.01
+            e=0.70
             extra_cost+=np.inf
         elif action == 1:
             coverage = list(coverage)
@@ -132,13 +134,13 @@ centers,efective_length,direction_vector = place_squares_trajectory(trajectory,5
 
 coverage={}
 for center in centers:
-    coverage[(center[0] , center[1])]=0
+    coverage[(max(min((center[0],21600)),0) , max(min((center[1],10800)),0))]=0
 n_squares = len(coverage)
 # Possible actions
 possible_actions = [0, 1]
 
 # Run MCTS
-start_state = (centers[0],tuple([*coverage.values()]), 1, 7, 0)
+start_state = ([*coverage][0],tuple([*coverage.values()]), 1, 7, 0)
 
 
 astar_centers = AStar(possible_actions, coverage)
