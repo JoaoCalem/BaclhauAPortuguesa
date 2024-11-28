@@ -91,7 +91,7 @@ def plot_trajectory(domain_width, domain_height, trajectory):
     plt.grid(True)
     plt.show()
 
-def calculate_border_intersections(domain_width, domain_height, x0, y0, v_x, v_y, proximity_threshold=600):
+def calculate_border_intersections(domain_width, domain_height, x0, y0, v_x, v_y, proximity_threshold):
     """
     Calculate all intersection points of a trajectory with domain borders, including teleportation points.
     Stops when a new intersection is within the proximity threshold of a previous one.
@@ -291,6 +291,7 @@ def place_squares_trajectory(trajectory_segments, square_size):
 
     return square_centers
 
+
 def plot_intersections(domain_width, domain_height, intersections):
     """
     Plot the trajectory intersections as diagonal streaks, excluding horizontal and vertical streaks.
@@ -393,8 +394,14 @@ def place_squares_trajectory(trajectory_segments, square_size, trajectory_angle)
                     center_y = 0
                 temp_centers.append((center_x, center_y))
             square_centers += temp_centers[::-1]
+        # temp_centers = []
+        # for ix, center in enumerate(square_centers):
+        #     if ix>0 and center[0]-square_centers[ix-1][0] > 300:
+        #         temp_centers.append(center)
+        # square_centers = temp_centers
 
     return square_centers, efective_length, direction_vector
+
 def plot_squares(trajectory_segments, square_centers, square_size, domain_width, domain_height,efective_length, direction_vector):
     """
     Plot the trajectory segments and squares along the trajectory, limiting the view to the domain.
@@ -414,11 +421,11 @@ def plot_squares(trajectory_segments, square_centers, square_size, domain_width,
     # Plot trajectory segments
     for segment in trajectory_segments:
         x1, y1, x2, y2 = segment
-        # ax.plot([x1, x2], [y1, y2], 'k-', label='Trajectory' if segment == trajectory_segments[0] else '')
+        ax.plot([x1, x2], [y1, y2], 'k-', label='Trajectory' if segment == trajectory_segments[0] else '')
 
     # Plot squares
     size = square_size/2
-    for cx, cy in square_centers:
+    for cx, cy in [square_centers[0],square_centers[-1]]:
         # Only plot squares within the domain boundaries
         
         square = plt.Rectangle((cx-size, cy -size), square_size, square_size,
@@ -427,7 +434,7 @@ def plot_squares(trajectory_segments, square_centers, square_size, domain_width,
         ax.set_ylim(0, domain_height)
         ax.add_patch(square)
         
-        # plt.pause(0.001)
+        plt.pause(0.0001)
 
 
     plt.title("Squares Along Trajectory within Domain")
@@ -443,13 +450,15 @@ def plot_squares(trajectory_segments, square_centers, square_size, domain_width,
 # Parameters
 domain_width = 21600
 domain_height = 10800
-x0, y0 = domain_width / 2, domain_height / 2  # Start at the center
+x0 = 500
+y0=250
 v_x = 4.35  # Velocity in x-direction
 v_y = 5.49  # Velocity in y-direction
+height = 590
 
 declive = v_y/v_x
 angle = math.atan(declive)
-proximity_threshold = 300  # Distance threshold for stopping
+proximity_threshold = 100  # Distance threshold for stopping
 
 # Step 1: Calculate intersection points with proximity-based stopping
 intersections = calculate_border_intersections(domain_width, domain_height, x0, y0, v_x, v_y, proximity_threshold)
@@ -465,5 +474,6 @@ closest_value = map_to_closest_value(m_distance/2, [500, 400, 300])
 trajectory = bundle_segments(intersections[1:])
 # Step 3: Create a grid centered at the midpoint with squares twice the mapped size
 square_size = 2 * closest_value
-centers,efective_length,direction_vector = place_squares_trajectory(trajectory,600, declive)
-# plot_squares(trajectory,centers,600,domain_width, domain_height,efective_length,direction_vector)
+centers,efective_length,direction_vector = place_squares_trajectory(trajectory,height, declive)
+if __name__ == '__main__':
+    plot_squares(trajectory,centers,height,domain_width, domain_height,efective_length,direction_vector)

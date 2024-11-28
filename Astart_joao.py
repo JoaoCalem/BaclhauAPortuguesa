@@ -47,13 +47,30 @@ class AStar:
                         continue
 
                     g = self.cost_function(next_state, action, extra_cost)
-                    alpha = 3
+                    alpha = 10
                     h = alpha*self.heuristic_function(next_state)
                     heapq.heappush(open_set, (g + h, g, next_state, path + [action]))
                 print([((i[0]-i[1])/(alpha*2), round(i[-2][2],2)*100, i[-2][0]) for i in open_set[:1]])
                 # breakpoint()
             except KeyboardInterrupt:
                 # print([(i[-1],(i[0]-i[1])/2) for i in open_set[:1]])
+                x_data = []
+                y_data = []
+                fig, ax = plt.subplots()
+                ax.set_title('Dynamic x, y Positions')
+                ax.set_xlabel('X Position')
+                ax.set_ylabel('Y Position')
+                for i,v in enumerate(self.coverage.keys()):
+                    if open_set[0][2][1][i] == 0:
+                        print(v)
+                        x_data.append(v[0])
+                        y_data.append(v[1])
+                        ax.clear()
+                        ax.plot(x_data, y_data, marker='o', linestyle='', color='b')
+                        ax.set_xlim(min(x_data) - 1, max(x_data) + 1)
+                        ax.set_ylim(min(y_data) - 1, max(y_data) + 1)
+                        plt.draw()
+                        plt.pause(0.001)
                 inp = input('Continue: y or n\n')
                 if inp=='n':
                     sys.exit()
@@ -131,6 +148,7 @@ trajectory = bundle_segments(intersections[1:])
 # Step 3: Create a grid centered at the midpoint with squares twice the mapped size
 square_size = 2 * closest_value
 centers,efective_length,direction_vector = place_squares_trajectory(trajectory,590, declive)
+# plot_squares(trajectory,centers,590,domain_width, domain_height,efective_length,direction_vector)
 
 coverage={}
 for center in centers:
