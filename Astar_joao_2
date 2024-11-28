@@ -47,14 +47,31 @@ class AStar:
                         continue
 
                     g = self.cost_function(next_state, action, extra_cost)
-                    alpha = 100
+                    alpha = 10000
                     h = alpha*self.heuristic_function(next_state)
                     heapq.heappush(open_set, (g + h, g, next_state, path + [action]))
-                # print([((i[0]-i[1])/(alpha*2), round(i[-2][2],2)*100, i[-2][0]) for i in open_set[:1]])
-                print([(i[-1],(i[0]-i[1])/(alpha*2),int(i[1])) for i in open_set[:1]])
-                breakpoint()
+                print([((i[0]-i[1])/(alpha*2), round(i[-2][2],2)*100, i[-2][0]) for i in open_set[:1]])
+                # print([(i[-1],i[2][2],i[2][0],(i[0]-i[1])/(alpha*2),int(round(i[1]))) for i in open_set[:1]])
+                # breakpoint()
             except KeyboardInterrupt:
-                # print([(i[-1],(i[0]-i[1])/2) for i in open_set[:1]])
+                print([(i[-1],(i[0]-i[1])/2) for i in open_set[:1]])
+                # x_data = []
+                # y_data = []
+                # fig, ax = plt.subplots()
+                # ax.set_title('Dynamic x, y Positions')
+                # ax.set_xlabel('X Position')
+                # ax.set_ylabel('Y Position')
+                # for i,v in enumerate(self.coverage.keys()):
+                #     if open_set[0][2][1][i] == 0:
+                #         x_data.append(v[0])
+                #         y_data.append(v[1])
+                #         ax.clear()
+                #         ax.plot(x_data, y_data, marker='o', linestyle='', color='b')
+                #         ax.set_xlim(min(x_data) - 1, max(x_data) + 1)
+                #         ax.set_ylim(min(y_data) - 1, max(y_data) + 1)
+                #         plt.draw()
+                #         plt.pause(0.001)
+                        
                 inp = input('Continue: y or n\n')
                 if inp=='n':
                     sys.exit()
@@ -71,11 +88,16 @@ class AStar:
         key, coverage, e, mode,steps_passed = state
         
         heur = len([i for i in coverage if i==0]) * 2
-        return heur 
+        # dists = []
+        # for i in coverage:
+        #     if i==0:
+        #         key2  = [*self.coverage][i]
+        #         dists.append(np.sqrt((key[0]-key2[0])**2+(key[1]-key2[1])**2))
+        return heur
 
     def find_next_center(self, current_state, action, efective_length,direction_vector,v_x = 4.35,v_y = 5.49):
         """Predict the next center state based on the current state and action."""
-        key, coverage, e, mode,steps_passed = current_state
+        key, coverage, e, mode, steps_passed = current_state
         extra_cost = 0
         travel_distance = 0
         if (action == 1 and mode < 3) or (action == 0 and mode == 4):
@@ -151,7 +173,7 @@ centers,efective_length,direction_vector = place_squares_trajectory(trajectory,s
 
 coverage={}
 for center in centers:
-    coverage[(max(min((center[0],21600)),0) , max(min((center[1],10800)),0))]=0
+    coverage[(center[0] ,center[1])]=0
 n_squares = len(coverage)
 # Possible actions
 possible_actions = [0, 1]

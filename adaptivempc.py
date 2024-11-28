@@ -373,12 +373,26 @@ def place_squares_trajectory(trajectory_segments, square_size, trajectory_angle)
             for i in range(0,num_squares):
                 center_x = (x1+efective_length * direction_vector[0]) + (i *2*efective_length) * direction_vector[0]
                 center_y = (y1+efective_length * direction_vector[1]) + (i * 2*efective_length) * direction_vector[1]
+                if center_x>21600:
+                    center_y -= (center_x-21600)*direction_vector[1]/direction_vector[0]
+                    center_x = 21600
+                if center_y>10800:
+                    center_x -= (center_y-10800)*direction_vector[0]/direction_vector[1]
+                    center_y = 10800
                 square_centers.append((center_x, center_y))
         else:
+            temp_centers = []
             for i in range(0,num_squares):
                 center_x = (x2-efective_length * direction_vector[0]) - (i *2*efective_length) * direction_vector[0]
                 center_y = (y2-efective_length * direction_vector[1]) - (i * 2*efective_length) * direction_vector[1]
-                square_centers.append((center_x, center_y))
+                if center_x<0:
+                    center_y += (-center_x)*direction_vector[1]/direction_vector[0]
+                    center_x = 0
+                if center_y<0:
+                    center_x += (-center_y)*direction_vector[0]/direction_vector[1]
+                    center_y = 0
+                temp_centers.append((center_x, center_y))
+            square_centers += temp_centers[::-1]
 
     return square_centers, efective_length, direction_vector
 def plot_squares(trajectory_segments, square_centers, square_size, domain_width, domain_height,efective_length, direction_vector):
@@ -392,12 +406,15 @@ def plot_squares(trajectory_segments, square_centers, square_size, domain_width,
     - domain_width: Width of the domain.
     - domain_height: Height of the domain.
     """
-    plt.figure(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
+    # Set domain limits
+    ax.set_xlim(0, domain_width)
+    ax.set_ylim(0, domain_height)
 
     # Plot trajectory segments
     for segment in trajectory_segments:
         x1, y1, x2, y2 = segment
-        plt.plot([x1, x2], [y1, y2], 'k-', label='Trajectory' if segment == trajectory_segments[0] else '')
+        # ax.plot([x1, x2], [y1, y2], 'k-', label='Trajectory' if segment == trajectory_segments[0] else '')
 
     # Plot squares
     size = square_size/2
@@ -406,11 +423,12 @@ def plot_squares(trajectory_segments, square_centers, square_size, domain_width,
         
         square = plt.Rectangle((cx-size, cy -size), square_size, square_size,
                                 edgecolor='blue', facecolor='none')
-        plt.gca().add_patch(square)
+        ax.set_xlim(0, domain_width)
+        ax.set_ylim(0, domain_height)
+        ax.add_patch(square)
+        
+        # plt.pause(0.001)
 
-    # Set domain limits
-    plt.xlim(0, domain_width)
-    plt.ylim(0, domain_height)
 
     plt.title("Squares Along Trajectory within Domain")
     plt.xlabel("X")
