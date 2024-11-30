@@ -45,32 +45,41 @@ class AStar:
                     next_state, extra_cost = self.find_next_center(current_state, action,efective_length,direction_vector)
                     if next_state in visited:
                         continue
-
+                    alpha = 1
                     g = self.cost_function(next_state, action, extra_cost)
-                    alpha = 10
-                    h = alpha*self.heuristic_function(next_state)
+                    h = alpha * self.heuristic_function(next_state)
                     heapq.heappush(open_set, (g + h, g, next_state, path + [action]))
-                print([((i[0]-i[1])/(alpha*2), round(i[-2][2],2)*100, i[-2][0]) for i in open_set[:1]])
-                # breakpoint()
+                MAX_DEPTH = 6
+                path_same_length = len(path) + 1 - MAX_DEPTH
+                open_set = [
+                    node for node in open_set if path_same_length<=0 or node[3][:path_same_length] == path[:path_same_length]
+                ]
+                heapq.heapify(open_set)  # Rebuild the heap after pruning
+                print([(round((i[0]-i[1])/2), round(i[-2][2]*100), i[1]) for i in open_set[:1]])
+                # if (open_set[0][0]-open_set[0][1])/2 < 336:
+                #     temp = len(open_set[0][-1])-5
+                #     print([(i[-1][temp:],i[2][2],(i[0]-i[1])/2) for i in open_set])
+                #     breakpoint()
             except KeyboardInterrupt:
-                # print([(i[-1],(i[0]-i[1])/2) for i in open_set[:1]])
-                x_data = []
-                y_data = []
-                fig, ax = plt.subplots()
-                ax.set_title('Dynamic x, y Positions')
-                ax.set_xlabel('X Position')
-                ax.set_ylabel('Y Position')
-                for i,v in enumerate(self.coverage.keys()):
-                    if open_set[0][2][1][i] == 0:
-                        print(v)
-                        x_data.append(v[0])
-                        y_data.append(v[1])
-                        ax.clear()
-                        ax.plot(x_data, y_data, marker='o', linestyle='', color='b')
-                        ax.set_xlim(min(x_data) - 1, max(x_data) + 1)
-                        ax.set_ylim(min(y_data) - 1, max(y_data) + 1)
-                        plt.draw()
-                        plt.pause(0.001)
+                print([(i[-1],(i[0]-i[1])/2) for i in open_set[:1]])
+                # x_data = []
+                # y_data = []
+                # fig, ax = plt.subplots()
+                # ax.set_title('Dynamic x, y Positions')
+                # ax.set_xlabel('X Position')
+                # ax.set_ylabel('Y Position')
+                # for i,v in enumerate(self.coverage.keys()):
+                #     if open_set[0][2][1][i] == 0:
+                #         print(v)
+                #         x_data.append(v[0])
+                #         y_data.append(v[1])
+                #         ax.clear()
+                #         ax.plot(x_data, y_data, marker='o', linestyle='', color='b')
+                #         ax.set_xlim(min(x_data) - 1, max(x_data) + 1)
+                #         ax.set_ylim(min(y_data) - 1, max(y_data) + 1)
+                #         plt.draw()
+                #         plt.pause(0.001)
+                
                 inp = input('Continue: y or n\n')
                 if inp=='n':
                     sys.exit()
@@ -85,9 +94,10 @@ class AStar:
     def heuristic_function(self, state):
         """Estimate the remaining cost to the goal."""
         key, coverage, e, mode,steps_passed = state
-        
+        extra_cost = 0
         heur = len([i for i in coverage if i==0]) * 2
-        return heur 
+        extra_cost -= 0.01*e
+        return heur + extra_cost
 
     def find_next_center(self, current_state, action,efective_length,direction_vector,v_x = 4.35,v_y = 5.49):
         """Predict the next center state based on the current state and action."""
