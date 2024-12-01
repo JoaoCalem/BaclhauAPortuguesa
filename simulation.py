@@ -91,6 +91,8 @@ class Simulator:
             return False
         
         for item in os.listdir('MELVIN'):
+            if not item[0].isalnum():
+                continue
             source_path = os.path.join('MELVIN', item)
             destination_path = os.path.join('images', item)
             

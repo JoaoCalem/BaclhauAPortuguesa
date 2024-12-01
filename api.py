@@ -20,12 +20,14 @@ def control(vx, vy, angle, state):
     if response.status_code != 200:       
         print_error(response, "Control")
 
-def take_picture(x,y, format='tiff') -> bool:
+def take_picture(idx, x, y, format='tiff', charge=None) -> bool:
     response = requests.get(f'{URI}/image')
     if response.status_code == 200:
-        with open(f"MELVIN/{x}_{y}.{format}", "wb") as file:
+        if charge:
+            control(*charge)
+        with open(f"MELVIN/{idx}_{x}_{y}.{format}", "wb") as file:
             file.write(response.content)
-        print(f"Image saved as {x}_{y}.{format}")
+        print(f"Image saved as {idx}_{x}_{y}.{format}")
         return True
     print_error(response, "Take picture")
     return False
