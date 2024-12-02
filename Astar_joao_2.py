@@ -216,11 +216,14 @@ class AStar:
         line = self.closest_line([x,y])
         possible = self.points_within_margin(self.coverage, line, margin=1)
         larger = [key for key in possible if key[0]>x]
-        if len(larger)>1:
-            return larger[1]
         if larger:
-            return possible[0]
-        return possible[1]
+            return larger[0]
+        return possible[0]
+        # if len(larger)>1:
+        #     return larger[1]
+        # if larger:
+        #     return possible[0]
+        # return possible[1]
 
     def goal_condition(self, state):
         """Goal is achieved when the sum of all coverage values equals 1."""

@@ -128,8 +128,9 @@ def main(astar=None):
             astar.current_state,
             0)
     else:
+        next_pos = astar.plan[1][0]
         start_state = (
-            astar.plan[1][0],
+            astar.get_next_idx(next_pos[0],next_pos[1],vx,vy),
             tuple([*astar.coverage.values()]),
             status['battery']/100,
             astar.current_state,
