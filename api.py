@@ -22,9 +22,9 @@ def control(vx, vy, angle, state):
 
 def take_picture(idx, x, y, format='tiff', charge=None) -> bool:
     response = requests.get(f'{URI}/image')
+    if charge:
+        control(*charge)
     if response.status_code == 200:
-        if charge:
-            control(*charge)
         with open(f"MELVIN/{idx}_{x}_{y}.{format}", "wb") as file:
             file.write(response.content)
         print(f"Image saved as {idx}_{x}_{y}.{format}")

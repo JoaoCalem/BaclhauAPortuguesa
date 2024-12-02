@@ -29,9 +29,10 @@ def throttle(func):
 
 @throttle
 def main(astar=None):
-    tol_time = SIMULATION_SPEED/2
+    tol_time = SIMULATION_SPEED
     if not astar:
         status = get_status()
+        print('Calculating trajectory')
         square_size = 10800/math.ceil(10800/(600-tol_time*status['vy']))
         centers,trajectory =  adaptivempc(
             status['width_x'],
@@ -44,6 +45,7 @@ def main(astar=None):
             coverage[(center[0] ,center[1])]=0
 
         astar = AStar([0, 1], coverage, trajectory, square_size)
+        astar.current_state = 7
         start_state = (
                 astar.get_next_idx(
                         status['width_x'],
@@ -55,6 +57,7 @@ def main(astar=None):
                 status['battery']/100,
                 7,
                 0)
+        print('Searching')
         search(astar,start_state,tol_time)  
         return astar
     
@@ -72,20 +75,21 @@ def main(astar=None):
     print('Battery:', status["battery"])
     print("next action", astar.plan[0] ,"x:",x,"y:",y)
     
-    print(f'T{round(time.time()-start_time)}')
-    if time.time()>start_time:
-        del astar.plan[0]
-        control(vx,vy,status["angle"], "charge")
+    print(f'T{round(time.time()-start_time,1)}')
+    print(y_dif, tol)
+    # if time.time()>start_time:
+    #     del astar.plan[0]
+    #     control(vx,vy,status["angle"], "charge")
     
-    if  state == 'safe' or status["battery"] < 1:
+    if  state == 'safe' or status["battery"] < 10:
         print(time.time()>start_time)
         print(state)
         if status["battery"] < 10:
             control(vx,vy,status["angle"], "charge")
             time.sleep((3*60+90*5)/SIMULATION_SPEED)
-            state = 4
+            astar.current_state = 4
         else:
-            state = 5
+            astar.current_state = 5
         status = get_status()
         x = status["width_x"]
         y = status["height_y"]
@@ -93,36 +97,57 @@ def main(astar=None):
             astar.get_next_idx(x,y,vx,vy),
             tuple([*astar.coverage.values()]),
             status['battery']/100,
-            state,
+            astar.current_state,
             0)
         search(astar,start_state,tol_time) 
-        pos, action, start_time = astar.plan[0]
         return astar
     
     if action == 3:
-        print('Changing to Charge')
+        print('Changing to Charge\n\n')
         control(vx,vy,status["angle"], "charge")
-        del astar.plan[0]
+        astar.current_state = 4
     elif y_dif<tol:
         if action==0:
             astar = picture(x,y,astar,pos, charge = [vx,vy,"narrow", "charge"])
-            print('Changing to Charge')
+            print('Changing to Charge\n\n')
+            astar.current_state = 4
         elif action==1:
-            print('Changing to Acquisition')
+            print('Changing to Acquisition\n\n')
             control(vx,vy,"narrow", "acquisition")
+            astar.current_state = 0
         elif action==2:
             astar = picture(x,y,astar,pos)
-        del astar.plan[0]
+    elif time.time()<=start_time:
+        return astar
+    
+    if time.time()>start_time:
+        start_state = (
+            astar.get_next_idx(x,y,vx,vy),
+            tuple([*astar.coverage.values()]),
+            status['battery']/100,
+            astar.current_state,
+            0)
+    else:
+        start_state = (
+            astar.plan[1][0],
+            tuple([*astar.coverage.values()]),
+            status['battery']/100,
+            astar.current_state,
+            0)
+    search(astar,start_state,tol_time) 
+    
     
     return astar
 
 def search(astar,start_state,tol_time):
+    print('\n','CALCULATING PATH','\n')           
     path,_ = astar.search(start_state,tol_time)
     status = get_status()
     astar.create_plan(path,tol_time,status['height_y'],SIMULATION_SPEED)
     return astar 
 
 def picture(x,y,alg,pos,format='jpeg', charge=None):
+    print('\n')
     idx = [*alg.coverage].index(pos)
     if alg.coverage[pos] == 0 and take_picture(idx,x,y,format,charge):
         alg.coverage[pos] = 1
@@ -157,6 +182,7 @@ def picture(x,y,alg,pos,format='jpeg', charge=None):
 if __name__ == '__main__':
     try:
         if RESTART_SIMULATION:
+            print('Restarting')
             restart_simulation()
             for item in os.listdir('MELVIN'):
                 if not item[0].isalnum():

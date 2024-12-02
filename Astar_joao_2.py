@@ -32,7 +32,8 @@ class AStar:
         break_temp = False
         self.start = start_state
         
-        while open_set:
+        MAX_DEPTH = 3
+        while open_set and ((not open_set) or len(open_set[0][-1])<MAX_DEPTH+1):
             try:
                 f, g, current_state, path = heapq.heappop(open_set)
 
@@ -51,16 +52,15 @@ class AStar:
                         continue
 
                     g = self.cost_function(next_state, action, extra_cost)
-                    alpha = 2
+                    alpha = 1
                     h = alpha*self.heuristic_function(next_state)
                     heapq.heappush(open_set, (g + h, g, next_state, path + [action]))
-                MAX_DEPTH = 3
                 path_same_length = len(path) - MAX_DEPTH
                 open_set = [
                     node for node in open_set if path_same_length<=0 or node[3][:path_same_length] == path[:path_same_length]
                 ]
                 heapq.heapify(open_set)  # Rebuild the heap after pruning
-                print([(round((i[0]-i[1])/(2*alpha)), round(i[-2][2]*100), i[1]) for i in open_set[:1]])
+                # print([(round((i[0]-i[1])/(2*alpha)), round(i[-2][2]*100), i[1]) for i in open_set[:1]])
                 # if open_set[0][2][0] == (np.float64(11725.201456466048), np.float64(10320.42666574682)):
                 #     break_temp = True
                 # if 1==1 or break_temp:
@@ -94,8 +94,10 @@ class AStar:
                             plt.pause(0.001)
                     inp = input('Continue: y or n\n')
                     if inp=='n':
-                        sys.exit()                      
-        return open_set[0][-1], open_set[0][1]
+                        sys.exit()    
+            
+        path = open_set[0][-1]                     
+        return path, open_set[0][1]
         return [], float("inf")  # If the goal was not reached
     
     def create_plan(self, path, tol, start_pos, sim_speed, v_x = 4.35,v_y = 5.49):
@@ -106,8 +108,12 @@ class AStar:
         for action in path:
             key, _, _, mode, _ = state
             if (action == 1 and mode < 3) or (action == 0 and mode == 4):
-                travel_time, key = self.single_square_travel(key,v_x)
-                if not self.plan[-1][2]:
+                if not start_time:
+                    y_dif = key[1]-start_pos
+                    y_dif = y_dif if y_dif>0 else y_dif+10800
+                    start_time = time.time() + (y_dif/v_y+2*tol)/sim_speed
+                if self.plan and not self.plan[-1][2]:
+                    travel_time, key = self.single_square_travel(key,v_x)
                     self.plan[-1][2] = start_time
                     start_time+=travel_time/sim_speed
             else:
@@ -132,7 +138,7 @@ class AStar:
                 if not start_time:
                     y_dif = pos[1]-start_pos
                     y_dif = y_dif if y_dif>0 else y_dif+10800
-                    start_time = time.time() + (y_dif/v_x+tol)/sim_speed
+                    start_time = time.time() + (y_dif/v_y+2*tol)/sim_speed
                 self.plan.append([(pos[0],pos[1]),action,start_time])
                 start_time += (total_time-tracking_time)/sim_speed
                 key = next_key
