@@ -32,7 +32,7 @@ class AStar:
         break_temp = False
         self.start = start_state
         
-        MAX_DEPTH = 3
+        MAX_DEPTH = 10
         while open_set and ((not open_set) or len(open_set[0][-1])<MAX_DEPTH+1):
             try:
                 f, g, current_state, path = heapq.heappop(open_set)
@@ -50,11 +50,10 @@ class AStar:
                     next_state, extra_cost = self.find_next_center(current_state, action, tol)
                     if next_state in visited:
                         continue
-
                     g = self.cost_function(next_state, action, extra_cost)
                     alpha = 1
-                    h = alpha*self.heuristic_function(next_state)
-                    heapq.heappush(open_set, (g + h, g, next_state, path + [action]))
+                    h = alpha*self.heuristic_function(next_state, path+[action])
+                    heapq.heappush(open_set, (g + h, g, next_state, path+[action]))
                 path_same_length = len(path) - MAX_DEPTH
                 open_set = [
                     node for node in open_set if path_same_length<=0 or node[3][:path_same_length] == path[:path_same_length]
@@ -63,7 +62,7 @@ class AStar:
                 # print([(round((i[0]-i[1])/(2*alpha)), round(i[-2][2]*100), i[1]) for i in open_set[:1]])
                 # if open_set[0][2][0] == (np.float64(11725.201456466048), np.float64(10320.42666574682)):
                 #     break_temp = True
-                # if 1==1 or break_temp:
+                # if len(path)<3 or break_temp:
                 #     temp = max(len(open_set[0][-1])-10,0)
                 #     print(temp,[(i[-1][temp:],len([c for c in i[2][1] if c==0]),np.round(i[0],1),np.round(i[1],1),100*round(i[2][2],2)) for i in open_set])
                 #     breakpoint()
@@ -96,9 +95,24 @@ class AStar:
                     if inp=='n':
                         sys.exit()    
             
-        path = open_set[0][-1]                     
+        path = open_set[0][-1]  
+        print(path)                   
         return path, open_set[0][1]
         return [], float("inf")  # If the goal was not reached
+            
+    def cost_function(self, state, action, extra_cost):
+        """Calculate the cost for a given state and action."""
+        key, coverage, e, mode, steps_passed = state
+        return steps_passed + extra_cost
+
+    def heuristic_function(self, state, path):
+        """Estimate the remaining cost to the goal."""
+        key, coverage, e, mode,steps_passed = state
+        extra_cost = 0
+        heur = len([i for i in coverage if i==0]) * 2.1
+        for i,v in enumerate(path):
+            extra_cost+=(i+1)*v*0.02
+        return heur + extra_cost
     
     def create_plan(self, path, tol, start_pos, sim_speed, v_x = 4.35,v_y = 5.49):
         """Calculate action plan with positions based on action list"""
@@ -109,13 +123,20 @@ class AStar:
             key, _, _, mode, _ = state
             if (action == 1 and mode < 3) or (action == 0 and mode == 4):
                 if not start_time:
-                    y_dif = key[1]-start_pos
-                    y_dif = y_dif if y_dif>0 else y_dif+10800
-                    start_time = time.time() + (y_dif/v_y+2*tol)/sim_speed
-                if self.plan and not self.plan[-1][2]:
-                    travel_time, key = self.single_square_travel(key,v_x)
-                    self.plan[-1][2] = start_time
-                    start_time+=travel_time/sim_speed
+                    idx = [*self.coverage].index(self.get_next_idx(key[0],key[1],v_x,v_y,-1))
+                    idx2 = [*self.coverage].index(self.get_next_idx(start_pos[0],start_pos[1],v_x,v_y,0))
+                    if ((idx2-idx)>0 and (idx2-idx)<10) or ((idx2-idx)<0 and (idx2-idx)>10):
+                        start_time = time.time()-1
+                    else:
+                        y_dif = key[1]-start_pos[1]
+                        y_dif = y_dif if y_dif>0 else y_dif+10800
+                        start_time = time.time() + (y_dif/v_y+2*tol)/sim_speed
+                if action==0:
+                    self.plan.append([key,4,start_time])    
+                if action==1:
+                    self.plan.append([(key[0],key[1]),2,start_time])
+                travel_time, key = self.single_square_travel(key,v_x)
+                start_time+=travel_time/sim_speed
             else:
                 if mode!=5:
                     total_time = 3*60
@@ -131,33 +152,22 @@ class AStar:
                     pos = (key[0]-(tracking_time+tol)*v_x,key[1]-(tracking_time+tol)*v_y)
                 else:
                     pos = key
-                    if len(self.plan)>0 and self.plan[-1][0] == (pos[0],pos[1]):
-                        del self.plan[-1]
-                    else:
+                    if mode>2:
                         action = 3
                 if not start_time:
-                    y_dif = pos[1]-start_pos
-                    y_dif = y_dif if y_dif>0 else y_dif+10800
-                    start_time = time.time() + (y_dif/v_y+2*tol)/sim_speed
+                    idx = [*self.coverage].index(self.get_next_idx(key[0],key[1],v_x,v_y,-1))
+                    idx2 = [*self.coverage].index(self.get_next_idx(start_pos[0],start_pos[1],v_x,v_y,0))
+                    if ((idx2-idx)>0 and (idx2-idx)<10) or ((idx2-idx)<0 and (idx2-idx)>10):
+                        start_time = time.time()-1
+                    else:
+                        y_dif = pos[1]-start_pos[1]
+                        y_dif = y_dif if y_dif>0 else y_dif+10800
+                        start_time = time.time() + (y_dif/v_y+2*tol)/sim_speed
                 self.plan.append([(pos[0],pos[1]),action,start_time])
                 start_time += (total_time-tracking_time)/sim_speed
                 key = next_key
             mode = 0 if action == 1 else 4
-            if action==1:
-                self.plan.append([(key[0],key[1]),2,None])
             state = (key, _, _, mode, _)
-            
-    def cost_function(self, state, action, extra_cost):
-        """Calculate the cost for a given state and action."""
-        key, coverage, e, mode, steps_passed = state
-        return steps_passed + extra_cost
-
-    def heuristic_function(self, state):
-        """Estimate the remaining cost to the goal."""
-        key, coverage, e, mode,steps_passed = state
-        extra_cost = 0
-        heur = len([i for i in coverage if i==0]) * 2
-        return heur + extra_cost
 
     def find_next_center(self, current_state, action,tol,v_x = 4.35,v_y = 5.49):
         """Predict the next center state based on the current state and action."""
@@ -180,9 +190,9 @@ class AStar:
                 travel_time, key = self.single_square_travel(key,v_x)
                 travel_distance += travel_time*v_y/self.square_size
                 total_time -= travel_time
-            e += -(total_time+tol)*0.2/100
+            e += -(total_time+tol)*0.1/100
             if action == 1:
-                e -= tol*0.2/100
+                e -= tol*0.1/100
             mode = 0 if action == 1 else 4
         else:
             total_time = 20*60
@@ -192,9 +202,9 @@ class AStar:
                 total_time -= travel_time
             mode = 0 if action == 1 else 4
             if action==0:
-                e += -total_time*0.2/100
+                e += -total_time*0.1/100
             else:
-                e += total_time*0.2/100
+                e += total_time*0.1/100
         
         if e<0.3:
             extra_cost+=np.inf
@@ -212,18 +222,38 @@ class AStar:
         res_key, res_val = min(self.coverage.items(), key=lambda v: np.sqrt((x - v[0][0]) ** 2 + (y - v[0][1]) ** 2))
         return res_key, res_val
     
-    def get_next_idx(self, x, y, vx, vy):
+    def get_next_idx(self, x, y, vx, vy, step=0):
         line = self.closest_line([x,y])
         possible = self.points_within_margin(self.coverage, line, margin=1)
-        larger = [key for key in possible if key[0]>x]
+        if step>=0:
+            larger = [key for key in possible if key[0]>x]
+        else:
+            larger = [key for key in possible if key[0]<=x][::-1]
         if larger:
             return larger[0]
-        return possible[0]
-        # if len(larger)>1:
-        #     return larger[1]
-        # if larger:
-        #     return possible[0]
-        # return possible[1]
+
+        if step>=0:
+            alpha_y = (10800 - y) / vy  # Hit the top border
+            alpha_x = (21600 - x) / vx  # Hit the right border
+            alpha = min(alpha_x, alpha_y)
+            x_next = x + alpha * vx
+            y_next = y + alpha * vy
+            if alpha == alpha_x:  # Vertical border
+                x_next -= 21600
+            if alpha == alpha_y:  # Horizontal border
+                y_next -=10800
+        else:
+            alpha_y = y / vy  # Hit the bottom border
+            alpha_x = x / vx  # Hit the left border
+            alpha = min(alpha_x, alpha_y)
+            x_next = x - alpha * vx
+            y_next = y - alpha * vy
+            if alpha == alpha_x:  # Vertical border
+                x_next += 21600
+            if alpha == alpha_y:  # Horizontal border
+                y_next +=10800
+            
+        return self.get_next_idx(x_next,y_next,vx,vy,step)
 
     def goal_condition(self, state):
         """Goal is achieved when the sum of all coverage values equals 1."""

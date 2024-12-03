@@ -21,7 +21,7 @@ def throttle(func):
         start = time.time()
         output = func(*args, **kwargs)
         elapsed = time.time()-start 
-        total_time = 0.4
+        total_time = 0.5
         if elapsed < total_time:
             time.sleep(total_time - elapsed)
         return output
@@ -43,6 +43,12 @@ def main(astar=None):
         coverage={}
         for center in centers:
             coverage[(center[0] ,center[1])]=0
+        for item in os.listdir('MELVIN'):
+            if not item[0].isalnum():
+                continue
+            idx = int(item[:item.index('_')])
+            key = [*coverage][idx]
+            coverage[key] = 1
 
         astar = AStar([0, 1], coverage, trajectory, square_size)
         astar.current_state = 7
@@ -73,7 +79,7 @@ def main(astar=None):
     tol = vy*tol_time
     print(state)
     print('Battery:', status["battery"])
-    print("next action", astar.plan[0] ,"x:",x,"y:",y)
+    print([*astar.coverage].index(astar.get_next_idx(pos[0],pos[1],vx,vy,-1)),"next action", astar.plan[0][:-1] ,"x:",x,"y:",y)
     
     print(f'T{round(time.time()-start_time,1)}')
     print(y_dif, tol)
@@ -81,9 +87,7 @@ def main(astar=None):
     #     del astar.plan[0]
     #     control(vx,vy,status["angle"], "charge")
     
-    if  state == 'safe' or status["battery"] < 10:
-        print(time.time()>start_time)
-        print(state)
+    if  (state == 'safe' and astar.current_state != 5) or status["battery"] < 30:
         if status["battery"] < 10:
             control(vx,vy,status["angle"], "charge")
             time.sleep((3*60+90*5)/SIMULATION_SPEED)
@@ -106,7 +110,7 @@ def main(astar=None):
         print('Changing to Charge\n\n')
         control(vx,vy,status["angle"], "charge")
         astar.current_state = 4
-    elif y_dif<tol:
+    elif y_dif<tol or (time.time()-start_time > -2 and time.time()-start_time < 0):
         if action==0:
             astar = picture(x,y,astar,pos, charge = [vx,vy,"narrow", "charge"])
             print('Changing to Charge\n\n')
@@ -121,6 +125,9 @@ def main(astar=None):
         return astar
     
     if time.time()>start_time:
+        status = get_status()
+        x = status["width_x"]
+        y = status["height_y"]
         start_state = (
             astar.get_next_idx(x,y,vx,vy),
             tuple([*astar.coverage.values()]),
@@ -129,8 +136,9 @@ def main(astar=None):
             0)
     else:
         next_pos = astar.plan[1][0]
+        idx = [*astar.coverage].index(astar.get_next_idx(next_pos[0],next_pos[1],vx,vy,-1))
         start_state = (
-            astar.get_next_idx(next_pos[0],next_pos[1],vx,vy),
+            [*astar.coverage][idx],
             tuple([*astar.coverage.values()]),
             status['battery']/100,
             astar.current_state,
@@ -144,7 +152,7 @@ def search(astar,start_state,tol_time):
     print('\n','CALCULATING PATH','\n')           
     path,_ = astar.search(start_state,tol_time)
     status = get_status()
-    astar.create_plan(path,tol_time,status['height_y'],SIMULATION_SPEED)
+    astar.create_plan(path,tol_time,[status['width_x'],status['height_y']],SIMULATION_SPEED)
     return astar 
 
 def picture(x,y,alg,pos,format='jpeg', charge=None):
@@ -152,6 +160,8 @@ def picture(x,y,alg,pos,format='jpeg', charge=None):
     idx = [*alg.coverage].index(pos)
     if alg.coverage[pos] == 0 and take_picture(idx,x,y,format,charge):
         alg.coverage[pos] = 1
+    elif charge and alg.coverage[pos] == 1:
+        control(*charge)
     return alg
     
 
@@ -185,16 +195,14 @@ if __name__ == '__main__':
         if RESTART_SIMULATION:
             print('Restarting')
             restart_simulation()
-            for item in os.listdir('MELVIN'):
-                if not item[0].isalnum():
-                    continue
-                path = os.path.join('MELVIN', item)
-                os.remove(path)
         set_simulation(SIMULATION,SIMULATION_SPEED)
         print("--Agent started--")
         astar = None
         while True:
-            astar = main(astar)
+            try:
+                astar = main(astar)
+            except TimeoutError:
+                pass
     except KeyboardInterrupt:
         print('\n--Agent quit--')
         sys.exit(0)
