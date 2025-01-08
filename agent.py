@@ -11,7 +11,7 @@ import math
 
 SIMULATION = False
 SIMULATION_SPEED = 20
-RESTART_SIMULATION = True
+RESTART_SIMULATION = False
 simulator = Simulator(SIMULATION_SPEED)
 simulator.picture_taken = False
 
@@ -33,7 +33,7 @@ def main(astar=None):
     if not astar:
         status = get_status()
         print('Calculating trajectory')
-        square_size = 10800/math.ceil(10800/(600-tol_time*status['vy']))
+        square_size = 10800/math.ceil(10800/(1000-tol_time*status['vy']))
         centers,trajectory =  adaptivempc(
             status['width_x'],
             status['height_y'],
@@ -112,12 +112,12 @@ def main(astar=None):
         astar.current_state = 4
     elif y_dif<tol or (time.time()-start_time > -2 and time.time()-start_time < 0):
         if action==0:
-            astar = picture(x,y,astar,pos, charge = [vx,vy,"narrow", "charge"])
+            astar = picture(x,y,astar,pos, charge = [vx,vy,"wide", "charge"])
             print('Changing to Charge\n\n')
             astar.current_state = 4
         elif action==1:
             print('Changing to Acquisition\n\n')
-            control(vx,vy,"narrow", "acquisition")
+            control(vx,vy,"wide", "acquisition")
             astar.current_state = 0
         elif action==2:
             astar = picture(x,y,astar,pos)
@@ -155,10 +155,10 @@ def search(astar,start_state,tol_time):
     astar.create_plan(path,tol_time,[status['width_x'],status['height_y']],SIMULATION_SPEED)
     return astar 
 
-def picture(x,y,alg,pos,format='jpeg', charge=None):
+def picture(x,y,alg,pos,format='png', charge=None):
     print('\n')
     idx = [*alg.coverage].index(pos)
-    if alg.coverage[pos] == 0 and take_picture(idx,x,y,format,charge):
+    if alg.coverage[pos] == 0 and take_picture(idx,format,charge):
         alg.coverage[pos] = 1
     elif charge and alg.coverage[pos] == 1:
         control(*charge)

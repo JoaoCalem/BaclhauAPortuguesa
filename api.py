@@ -1,5 +1,6 @@
 import requests
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 URI = 'http://10.100.50.1:33000'
 
@@ -20,8 +21,24 @@ def control(vx, vy, angle, state):
     if response.status_code != 200:       
         print_error(response, "Control")
 
-def take_picture(idx, x, y, format='tiff', charge=None) -> bool:
-    response = requests.get(f'{URI}/image')
+def take_picture(idx, format='tiff', charge=None) -> bool:
+    def fetch_status():
+        return get_status()
+
+    def fetch_image():
+        return requests.get(f'{URI}/image')
+
+    with ThreadPoolExecutor() as executor:
+        # Submit tasks to the thread pool
+        status = executor.submit(fetch_status)
+        future_image = executor.submit(fetch_image)
+        status = status.result()
+        # Retrieve results
+        x = status['width_x']
+        y = status['height_y']
+        response = future_image.result()
+
+    # Handle image saving
     if charge:
         control(*charge)
     if response.status_code == 200:
@@ -29,6 +46,7 @@ def take_picture(idx, x, y, format='tiff', charge=None) -> bool:
             file.write(response.content)
         print(f"Image saved as {idx}_{x}_{y}.{format}")
         return True
+
     print_error(response, "Take picture")
     return False
 
